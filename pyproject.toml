@@ -1,0 +1,32 @@
+[project]
+name = "em_gateway"
+dynamic = ["version"]
+dependencies = [
+    "pymodbus",
+    "pyserial",
+    "paho-mqtt",
+    "aiomqtt",
+    "dataclass-binder",
+]
+requires-python = ">=3.11"
+readme = "README.md"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+bms_gateway = "deye_powercontrol.app:run_app"
+
+#[tool.setuptools.dynamic]
+#version = {attr = ".__version__"}
+
+[tool.setuptools.package-data]
+bms_gateway = ["*.toml"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+[tool.ruff]
+line-length = 100
+ignore = ["ERA001"]
