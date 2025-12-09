@@ -103,6 +103,7 @@ async def main_task() -> None:
 def main() -> None:
     """Run main task."""
     try:
+        logger.info("EM-Gateway running. Press (twice) <CTRL> + C to exit.")
         asyncio.run(main_task())
     except KeyboardInterrupt:
         stop_flag.set()
