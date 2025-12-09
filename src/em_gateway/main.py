@@ -41,7 +41,6 @@ import argparse
 import asyncio
 import logging
 import threading
-from contextlib import suppress
 
 from em_gateway import gateway_config
 from em_gateway.sdm630_emulator import SDM630Emulator
@@ -60,7 +59,7 @@ logging.basicConfig(format="%(message)s", level=logging.DEBUG if cmdline.verbose
 conf = gateway_config.init_or_read_from_config_file(init=cmdline.init)
 
 t_main: threading.Thread | None = None
-thread_stop = threading.Event()
+stop_flag = threading.Event()
 
 # meter_emu = SDM630Emulator(conf.emulator)
 emu: SDM630Emulator
@@ -97,27 +96,29 @@ async def main_task() -> None:
     global emu  # noqa: PLW0603
     emu = SDM630Emulator()
     await emu.start_server()
-    while not thread_stop.is_set():  # noqa: ASYNC110
+    while not stop_flag.is_set():  # noqa: ASYNC110
         await asyncio.sleep(0.1)
 
 
 def main() -> None:
     """Run main task."""
-    with suppress(KeyboardInterrupt):
+    try:
         asyncio.run(main_task())
+    except KeyboardInterrupt:
+        stop_flag.set()
 
 
 def run_bg() -> None:
     """Run main task in background thread (for debugging in ipython etc)."""
     global t_main  # noqa: PLW0603
-    thread_stop.clear()
+    stop_flag.clear()
     t_main = threading.Thread(target=main)
     t_main.start()
 
 
 def stop_bg() -> None:
     """Stop main task."""
-    thread_stop.set()
+    stop_flag.set()
     if t_main is not None:
         t_main.join()
 

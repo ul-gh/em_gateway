@@ -65,7 +65,7 @@ class SDM630Emulator:
                 "ProductName": "EM Gateway",
                 "ModelName": "EMG-DIY",
                 "MajorMinorRevision": conf.version,
-            }
+            },
         )
         self.server = ModbusSerialServer(
             context=self._server_context,  # Data storage
