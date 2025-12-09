@@ -36,35 +36,33 @@ This file must be edited to suit application details.
 
 2025-08-27 Ulrich Lukas
 """
+
 import argparse
 import asyncio
 import logging
 import threading
-from contextlib import AsyncExitStack, suppress
+from contextlib import suppress
 
-from em_gateway import app_config
+from em_gateway import gateway_config
 from em_gateway.sdm630_emulator import SDM630Emulator
 
 parser = argparse.ArgumentParser(prog=__package__, description=__doc__)
-parser.add_argument("--init", action="store_true",
-                    help="Initialize configuration file and exit")
-parser.add_argument("-v", "--verbose", action="store_true",
-                    help="Enable verbose (debug) output")
+parser.add_argument("--init", action="store_true", help="Initialize configuration file and exit")
+parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose (debug) output")
 cmdline = parser.parse_args()
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(message)s",
-                    level=logging.DEBUG if cmdline.verbose else logging.INFO)
+logging.basicConfig(format="%(message)s", level=logging.DEBUG if cmdline.verbose else logging.INFO)
 
 
 # App configuration read from file: "~/bms_gateway/bms_config.toml"
 # Default configuration: See source tree file "bms_config_default.toml"
-conf = app_config.init_or_read_from_config_file(init=cmdline.init)
+conf = gateway_config.init_or_read_from_config_file(init=cmdline.init)
 
-t_main: threading.Thread = None
+t_main: threading.Thread | None = None
 thread_stop = threading.Event()
 
-#meter_emu = SDM630Emulator(conf.emulator)
+# meter_emu = SDM630Emulator(conf.emulator)
 emu: SDM630Emulator
 
 
@@ -77,7 +75,7 @@ emu: SDM630Emulator
 #         for bms in bmses_out:
 #             await stack.enter_async_context(bms)
 #         if conf.mqtt.ACTIVATED:
-#             mqtt_out = MQTTBroadcaster(conf.mqtt)  
+#             mqtt_out = MQTTBroadcaster(conf.mqtt)
 #             await stack.enter_async_context(mqtt_out)
 #         while not thread_stop.isSet():
 #             # Read all input BMSes
@@ -93,29 +91,36 @@ emu: SDM630Emulator
 #             if conf.mqtt.ACTIVATED:
 #                 await mqtt_out.set_state(state_out)
 
+
 async def main_task() -> None:
-    global emu
+    """Initialize application and launch all async tasks."""
+    global emu  # noqa: PLW0603
     emu = SDM630Emulator()
     await emu.start_server()
     while not thread_stop.is_set():  # noqa: ASYNC110
         await asyncio.sleep(0.1)
 
 
-def run_app() -> None:
+def main() -> None:
+    """Run main task."""
     with suppress(KeyboardInterrupt):
         asyncio.run(main_task())
 
-def run_app_bg() -> None:
-    """Run app in background thread (for debugging in ipython etc)."""
-    global t_main
+
+def run_bg() -> None:
+    """Run main task in background thread (for debugging in ipython etc)."""
+    global t_main  # noqa: PLW0603
     thread_stop.clear()
-    t_main = threading.Thread(target=run_app)
+    t_main = threading.Thread(target=main)
     t_main.start()
 
-def stop_app() -> None:
+
+def stop_bg() -> None:
+    """Stop main task."""
     thread_stop.set()
-    t_main.join()
+    if t_main is not None:
+        t_main.join()
 
 
 if __name__ == "__main__":
-    run_app()
+    main()

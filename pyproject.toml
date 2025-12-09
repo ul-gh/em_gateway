@@ -16,13 +16,13 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-bms_gateway = "deye_powercontrol.app:run_app"
+em_gateway = "em_gateway.main:main"
 
 #[tool.setuptools.dynamic]
 #version = {attr = ".__version__"}
 
 [tool.setuptools.package-data]
-bms_gateway = ["*.toml"]
+em_gateway = ["*.toml"]
 
 [tool.ruff.lint]
 select = ["ALL"]

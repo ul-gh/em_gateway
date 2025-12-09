@@ -5,6 +5,7 @@ overwritten from config file, see file names below!
 
 2025-06-02 Ulrich Lukas
 """
+
 import logging
 import shutil
 import sys
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME: str = "config.toml"
 DEFAULT_CONFIG_FILE_NAME: str = "config_default.toml"
 
+
 @dataclass
 class MQTTConfig:
     """Settings for MQTT control and telemetry."""
@@ -36,15 +38,17 @@ class MQTTConfig:
     # MQTT broadcast is also stopped.
     INTERVAL: float = 10.0
 
+
 @dataclass
 class SDM630EmuConfig:
     """Settings for emulated SDM630 energy meter."""
 
     # Serial port connected to Modbus-"Meter" port of the inverter
-    #modbus_port: str = "/dev/ttyUSB1"
-    modbus_port: str = "/tmp/ttyV0"
+    # modbus_port: str = "/dev/ttyUSB1"
+    modbus_port: str = "COM1"
     baudrate: int = 9600
     version: str = __version__
+
 
 @dataclass
 class SDM630ClientConfig:
@@ -52,6 +56,7 @@ class SDM630ClientConfig:
 
     # Serial port connected to grid-sided SDM630 energy meter using Modbus-RTU
     modbus_port: str = "/dev/ttyUSB3"
+
 
 @dataclass
 class SHMReceiverConfig:
@@ -64,16 +69,18 @@ class SHMReceiverConfig:
     # UDP port of the Sunny Home Manager or compatible device
     udp_port: int = 8888
 
+
 @dataclass
 class InverterConfig:
     """Settings for Deye inverter."""
 
     # Serial port connected to main Modbus control port of the inverter
-    #modbus_port: str = "/dev/ttyUSB2"
+    # modbus_port: str = "/dev/ttyUSB2"
     modbus_port: str = "/tmp/ttyV1"
 
     # Poll interval in seconds for reading inverter state
     poll_interval: float = 1.0
+
 
 @dataclass
 class AppConfig:
@@ -82,12 +89,13 @@ class AppConfig:
     version: str = __version__
     # Can be "grid-side", "inverter-direct" or "off" (default) for no operation.
     CONTROL_MODE: str = "inverter-direct"
-    mqtt: MQTTConfig = MQTTConfig
-    emulator: SDM630EmuConfig = SDM630EmuConfig
-    inverter: InverterConfig = InverterConfig
+    mqtt: type[MQTTConfig] = MQTTConfig
+    emulator: type[SDM630EmuConfig] = SDM630EmuConfig
+    inverter: type[InverterConfig] = InverterConfig
 
 
-def init_or_read_from_config_file(init=False) -> AppConfig:
+def init_or_read_from_config_file(*, init: bool = False) -> AppConfig:
+    """Init app config on request or if not existing. Otherwise read from config file."""
     return AppConfig()
     conf_file = Path.home().joinpath(f".{__package__}").joinpath(CONFIG_FILE_NAME)
     default_conf_file = files(__package__).joinpath(DEFAULT_CONFIG_FILE_NAME)
@@ -105,8 +113,7 @@ def init_or_read_from_config_file(init=False) -> AppConfig:
     try:
         conf = Binder(AppConfig).parse_toml(conf_file)
         if conf.CONTROL_MODE not in ("grid-side", "inverter-direct"):
-            logger.error("Application not configured! "
-                         "Edit config file first: %s", conf_file)
+            logger.error("Application not configured! Edit config file first: %s", conf_file)
             sys.exit(1)
     except Exception as e:
         logger.exception("Error reading configuration file %s", conf_file)

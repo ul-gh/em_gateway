@@ -8,30 +8,31 @@ License: GPL v.3
 # FIXME: bug in device:164 "set" in parameter description, must be "info_name"
 # FIXME: bug in sparse:121 Only type "list" is recognized
 
-import asyncio  # noqa: D100
+import asyncio
 import struct
 
 from pymodbus import ModbusDeviceIdentification
 from pymodbus.datastore import (
     ModbusDeviceContext,
     ModbusServerContext,
-    #ModbusSlaveContext,
+    # ModbusSlaveContext,
     ModbusSparseDataBlock,
 )
 from pymodbus.framer import FramerType
 from pymodbus.server import ModbusSerialServer
 
-from em_gateway.app_config import AppConfig
+from em_gateway.gateway_config import AppConfig
 
 # This module only implements SDM630Emulator, so this is a module-wide setting
 conf = AppConfig.emulator
 
 REG_OFFSET_L1_POWER: int = 12
-#REG_OFFSET_L2_POWER: int = 14
-#REG_OFFSET_L3_POWER: int = 16
+# REG_OFFSET_L2_POWER: int = 14
+# REG_OFFSET_L3_POWER: int = 16
 
 # Device (Modbus slave) ID
 SDM630_DEVICE_ID: int = 1
+
 
 class SDM630Emulator:
     """SDM630 Modbus meter emulator for live power control."""
@@ -52,24 +53,26 @@ class SDM630Emulator:
         )
         self._data_lock = asyncio.Lock()
         self._device_context = ModbusDeviceContext(
-            ir=self._data, # Input registers
+            ir=self._data,  # Input registers
         )
         server_devices = {SDM630_DEVICE_ID: self._device_context}
         self._server_context = ModbusServerContext(devices=server_devices, single=False)
-        self._identity = ModbusDeviceIdentification(info_name={
-            "VendorName": "Ulrich Lukas",
-            "ProductCode": "EMG",
-            "VendorUrl": "https://github.com/ul-gh/em_gateway/",
-            "ProductName": "EM Gateway",
-            "ModelName": "EMG-DIY",
-            "MajorMinorRevision": conf.version,
-        })
+        self._identity = ModbusDeviceIdentification(
+            info_name={
+                "VendorName": "Ulrich Lukas",
+                "ProductCode": "EMG",
+                "VendorUrl": "https://github.com/ul-gh/em_gateway/",
+                "ProductName": "EM Gateway",
+                "ModelName": "EMG-DIY",
+                "MajorMinorRevision": conf.version,
+            }
+        )
         self.server = ModbusSerialServer(
-            context=self._server_context, # Data storage
-            identity=self._identity, # server identify
-            port=conf.modbus_port, # serial port
-            framer=FramerType.RTU, # The framer strategy to use
-            baudrate=conf.baudrate, # The baud rate to use for the serial device
+            context=self._server_context,  # Data storage
+            identity=self._identity,  # server identify
+            port=conf.modbus_port,  # serial port
+            framer=FramerType.RTU,  # The framer strategy to use
+            baudrate=conf.baudrate,  # The baud rate to use for the serial device
             # Deye inverters send some spurious requests which we want to ignore
             ignore_missing_devices=True,
         )
@@ -90,7 +93,7 @@ class SDM630Emulator:
 
     async def set_power(self, power: float) -> None:
         """Set emulated total active power by setting all phases to equal thirds."""
-        per_phase_reg_vals: list[int] = self.float_to_big_endian_reg_vals(1.0/3 * power)
+        per_phase_reg_vals: list[int] = self.float_to_big_endian_reg_vals(1.0 / 3 * power)
         # Replicate the list items three times for L1, L2 and L3
         l1_l2_l3_vals = per_phase_reg_vals * 3
         async with self._data_lock:
@@ -98,7 +101,7 @@ class SDM630Emulator:
             # respective input register setter functions by pymodbus.
             function_code: int = 0x04
             # Getting device context from server context is one option
-            #context = self._server_context[SDM630_DEVICE_ID]
+            # context = self._server_context[SDM630_DEVICE_ID]
             # Getting device context from instance attribute is another option
             context = self._device_context
             # Using the device context setValues() function to modify data.
@@ -106,9 +109,7 @@ class SDM630Emulator:
             context.setValues(function_code, REG_OFFSET_L1_POWER, l1_l2_l3_vals)
             # Third option is directly modifying the data block.
             # But the data block setter method assumes one-based offsets...
-            #self._data.setValues(REG_OFFSET_L1_POWER + 1, l1_l2_l3_vals)
-
-
+            # self._data.setValues(REG_OFFSET_L1_POWER + 1, l1_l2_l3_vals)
 
     async def start_server(self) -> None:
         """Start SDM630 emulator server task."""
