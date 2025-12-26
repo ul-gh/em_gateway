@@ -1,2 +1,2 @@
 # EM Gateway
-## Superseeded. New project: https://github.com/ul-gh/em_gateway
+## Superseeded. New project: https://github.com/ul-gh/energy_modulator
